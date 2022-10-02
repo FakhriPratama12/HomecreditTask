@@ -1,0 +1,89 @@
+# import libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_selection import SelectKBest #feature selection
+from sklearn.feature_selection import chi2
+from sklearn.utils import resample #re-sampling
+from sklearn.model_selection import train_test_split #data splitting
+from sklearn.preprocessing import StandardScaler #normalize features
+
+from sklearn.linear_model import LogisticRegression #logistic regression
+from sklearn.naive_bayes import GaussianNB #gaussian naive bayes
+from sklearn import tree
+from sklearn.tree import DecisionTreeClassifier #decision tree
+from sklearn.ensemble import RandomForestClassifier #random forest
+from sklearn.neighbors import KNeighborsClassifier #k-nearest neighbor
+from sklearn.neural_network import MLPClassifier #neural network
+from sklearn.metrics import confusion_matrix, classification_report 
+from sklearn.metrics import roc_auc_score #roc score
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+# data application (train)
+df_train = pd.read_csv("application_train.csv", sep=',')
+print('This dataset has %d rows dan %d columns.\n' % df_train.shape)
+df_train.head()
+
+print('Data types: \n')
+df_train.info(verbose=True)
+
+train = df_train.copy()
+decode_map = {0: "No Payment Difficulties", 1: "Payment Difficulties"}
+def decode_sentiment(label):
+    return decode_map[int(label)]
+
+train['TARGET'] = train['TARGET'].apply(lambda x: decode_sentiment(x))
+target_grp = (train[['TARGET']]
+                .groupby("TARGET")
+                .agg(COUNT=("TARGET","count"))
+                .sort_values(by=["COUNT"],ascending=False)
+                .reset_index()
+                )
+
+target_grp.style.background_gradient(cmap='Blues')
+
+
+grp = train['TARGET'].value_counts(normalize=True)
+grp.reset_index().style.background_gradient(cmap='Blues')
+
+
+fig = plt.figure(figsize = (12,7))
+grp.plot(kind='bar', color= ['orange','red'], alpha = 0.9, rot=0)
+plt.title('The Distribution of Clients Repayment Abilities\n', fontsize=14)
+#plt.show()
+
+# visualization pt 1
+sns.set_style('whitegrid')
+fig, ax = plt.subplots(2,2, figsize=(25,25))
+sns.set_context('paper', font_scale=1)
+
+ax[0][0].set_title('Clients Repayment Abilities By Contract Type\n', fontweight='bold', fontsize=14)
+sns.countplot(x='NAME_CONTRACT_TYPE', data = train, hue = 'TARGET', palette = 'ch:start=0.2,rot=-.3_r', ax=ax[0][0])
+
+ax[0][1].set_title('Clients Repayment Abilities By Gender\n', fontweight='bold', fontsize=14)
+sns.countplot(x='CODE_GENDER', data = train, hue = 'TARGET', palette = 'ch:start=0.2,rot=-.3_r', ax=ax[0][1])
+
+ax[1][0].set_title('\nClients Repayment Abilities By Car Ownership Status\n', fontweight='bold', fontsize=14)
+sns.countplot(x='FLAG_OWN_CAR', data = train, hue = 'TARGET', palette = 'ch:start=0.2,rot=-.3_r', ax=ax[1][0])
+
+ax[1][1].set_title('\nClients Repayment Abilities By Realty Ownership Status\n', fontweight='bold', fontsize=14)
+sns.countplot(x='FLAG_OWN_REALTY', data = train, hue = 'TARGET', palette = 'ch:start=0.2,rot=-.3_r', ax=ax[1][1])
+#plt.show()
+
+ct = train.groupby(by=['NAME_CONTRACT_TYPE','TARGET'], as_index=False)['SK_ID_CURR'].count()
+print('Clients Repayment Abilities By Contract Type')
+ct.sort_values(by='SK_ID_CURR', ascending=False)
+ct.style.background_gradient(cmap='Blues')
+
+#Gender vs Target
+train['CODE_GENDER'] = train['CODE_GENDER'].replace(['F','M'],['Female','Male'])
+gt = train.groupby(by=['CODE_GENDER','TARGET'], as_index=False)['SK_ID_CURR'].count()
+print('Clients Repayment Abilities By Gender')
+gt.sort_values(by='SK_ID_CURR', ascending=False)
+gt.style.background_gradient(cmap='Blues')
+df=df_train[['CODE_GENDER','TARGET']].groupby(['CODE_GENDER'],as_index=False).mean().sort_values(by=['TARGET'], ascending=False)
